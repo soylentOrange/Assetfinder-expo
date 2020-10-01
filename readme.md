@@ -23,7 +23,7 @@ This section only applies when you want to start from scratch. More information 
 
 ```Shell
 npm install -g expo-cli
-expo init ImageShare
+expo init Assetfinder
 ```
 
 ## React Navigation
@@ -38,7 +38,7 @@ In your project directory, run:
 expo install @react-navigation/native 
 
 # additional packages
-expo install @react-navigation/drawer @react-navigation/bottom-tabs
+expo install @react-navigation/drawer @react-navigation/bottom-tabs react-native-screens @react-navigation/stack react-native-gesture-handler react-native-reanimated react-native-safe-area-context @react-native-community/masked-view
 ```
 This will install versions of these libraries that are compatible.
 
@@ -51,8 +51,15 @@ enableScreens();
 ```
 
 ## react-native-paho-mqtt
-[react-native-paho-mqtt](https://www.npmjs.com/package/react-native-paho-mqtt) is a fork of [paho-client](https://www.npmjs.com/package/paho-client), this project exists to provide an ES6-ready, Promise-based, react-native compatible version of the Eclipse Paho client
+[react-native-paho-mqtt](https://www.npmjs.com/package/react-native-paho-mqtt) is a fork of [paho-client](https://www.npmjs.com/package/paho-client), this project exists to provide an ES6-ready, Promise-based, react-native compatible version of the Eclipse Paho client.
 
 ```Shell
 expo install react-native-paho-mqtt
+```
+
+## redux
+[React Redux](https://github.com/reduxjs/react-redux) is the official [React](https://reactjs.org/) binding for [Redux](https://redux.js.org/). It lets your React components read data from a Redux store, and dispatch actions to the store to update data.
+
+```Shell
+expo install react-redux redux redux-thunk
 ```
