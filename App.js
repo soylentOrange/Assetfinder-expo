@@ -1,157 +1,164 @@
-import React from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Client, Message } from 'react-native-paho-mqtt';
-import Constants from 'expo-constants';
-import { View, Text, Button, StyleSheet } from 'react-native';
-import { Provider, connect } from 'react-redux';
-import { createStore, combineReducers } from 'redux';
+import * as React from 'react';
+import { Button, Text, View, AsyncStorage } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+
 import { enableScreens } from 'react-native-screens';
+enableScreens(); 
 
-enableScreens();
+// Context for the Connection state
+const ConnectionContext = React.createContext();
 
-//Set up an in-memory alternative to global localStorage
-const myStorage = {
-  setItem: (key, item) => {
-    myStorage[key] = item;
-  },
-  getItem: (key) => myStorage[key],
-  removeItem: (key) => {
-    delete myStorage[key];
-  },
-};
-
-// A very simple reducer
-function counter(state, action) {
-  if (typeof state === 'undefined') {
-    return 0;
-  }
-
-  switch (action.type) {
-    case 'INCREMENT':
-      return state + 1;
-    case 'DECREMENT':
-      return state - 1;
-    default:
-      return state;
-  }
+function DetailsScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Details!</Text>
+    </View>
+  );
 }
 
-// A very simple store
-let store = createStore(combineReducers({ count: counter }));
-
-// A screen!
-function Counter({ count, dispatch, navigation }) {
+function AssetsScreen({ navigation }) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.paragraph}>{count}</Text>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Geräte</Text>
       <Button
-        title="Increment"
-        onPress={() => dispatch({ type: 'INCREMENT' })}
-      />
-      <Button
-        title="Decrement"
-        onPress={() => dispatch({ type: 'DECREMENT' })}
+        title="Go to Details"
+        onPress={() => navigation.navigate('Details')}
       />
     </View>
   );
 }
 
-// Connect the screens to Redux
-let CounterContainer = connect(state => ({ count: state.count }))(Counter);
-
-// Create a client instance
-const client = new Client({ uri: 'ws://mqtt.eclipse.org:80/mqtt', clientId: 'clientId', storage: myStorage });
-
-// set event handlers
-client.on('connectionLost', (responseObject) => {
-  if (responseObject.errorCode !== 0) {
-    console.log(responseObject.errorMessage);
-  }
-});
-
-client.on('messageReceived', (message) => {
-  console.log(message.payloadString);
-  store.dispatch({ type: 'INCREMENT' })
-});
- 
-// connect the client
-client.connect()
-  .then(() => {
-    // Once a connection has been made, make a subscription and send a message.
-    console.log('onConnect');
-    return client.subscribe('/HealthCAT/#');
-  })
-  .then(() => {
-    const message = new Message(JSON.stringify(
-      {
-        "DeviceName" : Constants.deviceName,
-        "SessionID" : Constants.sessionId,
-        "UniqueID" : Constants.installationId
-      }
-    ));
-    //message.payloadString = helloMsg.
-    message.destinationName = '/HealthCAT/client';
-    client.send(message);
-  })
-  .catch((responseObject) => {
-    if (responseObject.errorCode !== 0) {
-      console.log('onConnectionLost:' + responseObject.errorMessage);
-    }
-  });
-
-// Create our stack navigator
-let RootStack = createStackNavigator();
-
-// Render the app container component with the provider around it
-export default function App() {
+function ConnectionScreen({ navigation }) {
   return (
-    <Provider store={store}>
-      <NavigationContainer>
-        <RootStack.Navigator>
-          <RootStack.Screen name="Counter" component={CounterContainer} />
-        </RootStack.Navigator>
-      </NavigationContainer>
-    </Provider>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Settings screen</Text>
+      {/* <Button
+        title="Go to Details"
+        onPress={() => navigation.navigate('Details')}
+      /> */}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ecf0f1',
-    padding: 8,
-  },
-  paragraph: {
-    margin: 24,
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-});
+const AssetsStack = createStackNavigator();
 
-// export default function App() {
-//   return (
+function AssetsStackScreen() {
+  return (
+    <AssetsStack.Navigator>
+      <AssetsStack.Screen name="Geräte" component={AssetsScreen} />
+      <AssetsStack.Screen 
+        name="Details" 
+        component={DetailsScreen} 
+      />
+    </AssetsStack.Navigator>
+  );
+}
 
-//     <Provider store={store}>
-//       <NavigationContainer>
-//         <View style={styles.container}>
-//           <Text>Open up App.js to start working on your app!</Text>
-//           <StatusBar style="auto" />
-//         </View>
-//       </NavigationContainer>
-//     </Provider>
-//   );
-// }
+/* const SettingsStack = createStackNavigator();
 
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#fff',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-// });
+function SettingsStackScreen() {
+  return (
+    <SettingsStack.Navigator>
+      <SettingsStack.Screen name="Verbindung" component={SettingsScreen} />
+      <SettingsStack.Screen name="Details" component={DetailsScreen} />
+    </SettingsStack.Navigator>
+  );
+} */
+
+const Tab = createBottomTabNavigator();
+
+export default function App({ navigation }) {
+  const [state, dispatch] = React.useReducer(
+    (prevState, action) => {
+      switch (action.type) {
+        case 'CONNECTING':
+          return {
+            ...prevState,
+            isConnecting: true,
+            isConnected: false,
+          };
+        case 'CONNECT_MQTT':
+          return {
+            ...prevState,
+            isConnecting: false,
+            isConnected: true,
+          };
+        case 'DISCONNECT_MQTT':
+          return {
+            ...prevState,
+            isConnecting: true,
+            isConnected: false,
+          };
+      }
+    },
+    {      
+      isConnecting: false,
+      isConnected: false,
+    }
+  );
+
+  const connectionContext = React.useMemo(
+    () => ({
+      connect: () => {
+        // In a production app, we need to send some data (usually username, password) to server and get a token
+        // We will also need to handle errors if sign in failed
+        // After getting token, we need to persist the token using `AsyncStorage`
+        // In the example, we'll use a dummy token
+
+        dispatch({ type: 'CONNECTING'});
+      },
+
+      disconnect: () => dispatch({ type: 'DISCONNECT_MQTT' }),      
+    }),
+    []
+  );
+
+  return (
+    <ConnectionContext.Provider value={connectionContext}>
+      <NavigationContainer>
+        <Tab.Navigator  
+          screenOptions={({ route }) => ({
+              tabBarIcon: ({ focused, color, size }) => {
+                let iconName;
+
+                if (route.name === 'Geräte') {
+                  iconName = focused
+                    ? 'ios-list-box'
+                    : 'ios-list';
+                } else if (route.name === 'Verbindung') {
+                  iconName = 'ios-radio';
+                }
+
+                // You can return any component that you like here!
+                return <Ionicons name={iconName} size={size} color={color} />;
+              },
+            })}
+            tabBarOptions={{
+              activeTintColor: 	'#007aff',
+              inactiveTintColor: '#8e8e93',
+            }} 
+        > 
+        {state.isConnected ? (
+          <Tab.Screen 
+            name="Geräte" 
+            component={AssetsStackScreen} 
+          />
+          <Tab.Screen 
+            name="Verbindung" 
+            component={ConnectionScreen} 
+          />
+        ) : (
+          <Tab.Screen 
+            name="Verbindung" 
+            component={ConnectionScreen}  
+            options = {{tabBarVisible : false}}
+          />
+        )}
+        </Tab.Navigator>
+      </NavigationContainer>
+    </ConnectionContext.Provider>
+  );
+}
