@@ -57,9 +57,15 @@ enableScreens();
 expo install react-native-paho-mqtt
 ```
 
+## react-hooks-global-state
+To simplify state management [react-hooks-global-state](https://github.com/dai-shi/react-hooks-global-state) is used here.
+
+```Shell
+expo install react-hooks-global-state
+```
 ## redux
 [React Redux](https://github.com/reduxjs/react-redux) is the official [React](https://reactjs.org/) binding for [Redux](https://redux.js.org/). It lets your React components read data from a Redux store, and dispatch actions to the store to update data.
 
 ```Shell
-expo install react-redux redux redux-thunk
+expo install react-redux redux
 ```
