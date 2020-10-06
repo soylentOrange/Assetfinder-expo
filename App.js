@@ -32,7 +32,7 @@ const myStorage = {
 
 // Create a MQTT client and connect to the (hardcoded) server
 const createMQTTClient = () => {
-  const client = new Client({ uri: 'wss://mqtt.webdrive.biomechatronics.de:443/mqtt', clientId: 'clientId', storage: myStorage });
+  const client = new Client({ uri: 'wss://mqtt.webdrive.biomechatronics.de:443/mqtt', clientId: Constants.sessionId, storage: myStorage });
 
   // set event handler for lost connection
   client.on('connectionLost', (responseObject) => {
