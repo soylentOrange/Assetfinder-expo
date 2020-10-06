@@ -127,7 +127,7 @@ const initialAssetState = [
     id : 2,
     //name : "wheelchair",
     name : "Rollstuhl",
-    image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    image : Image.resolveAssetSource(require('./assets/wheelchair.png')).uri,
     totalCount : 0,
     availableCount : 0,
   },
@@ -136,7 +136,7 @@ const initialAssetState = [
     id : 3,
     //name : "ultrasound device",
     name : "Ultraschall",
-    image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    image : Image.resolveAssetSource(require('./assets/ultrasound.png')).uri,
     totalCount : 0,
     availableCount : 0,
   },
@@ -154,7 +154,7 @@ const initialAssetState = [
     id : 5,
     //name : "contraction recorder",
     name : "Wehenschreiber",
-    image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    image : Image.resolveAssetSource(require('./assets/contraction_recorder.png')).uri,
     totalCount : 0,
     availableCount : 0,
   },
@@ -163,7 +163,7 @@ const initialAssetState = [
     id : 6,
     //name : "rollboard",
     name : "Umlagerungshilfe",
-    image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    image : Image.resolveAssetSource(require('./assets/rollboard.png')).uri,
     totalCount : 0,
     availableCount : 0,
   },
@@ -172,7 +172,7 @@ const initialAssetState = [
     id : 7,
     //name : "commode chair",
     name : "Toilettenstuhl",
-    image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    image : Image.resolveAssetSource(require('./assets/commode_chair.png')).uri,
     totalCount : 0,
     availableCount : 0,
   },
@@ -181,7 +181,7 @@ const initialAssetState = [
     id : 8,
     //name : "stretcher",
     name : "Trage",
-    image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    image : Image.resolveAssetSource(require('./assets/stretcher.png')).uri,
     totalCount : 0,
     availbleCount : 0,
   },
@@ -242,7 +242,8 @@ const MQTT_CONNECTING = () => dispatch({ type: 'CONNECTING_MQTT' });
 // Reducer for room coordinates
 const roomsReducer = (state = initialState.rooms, action) => {
   switch (action.type) {
-    case 'UPDATE_ROOMS': return action.rooms;
+    // simply parse the new data and store it
+    case 'UPDATE_ROOMS': return JSON.parse(action.rooms);
     default:
         return state;
   }
@@ -254,7 +255,8 @@ const ROOMS_UPDATE = (rooms) => dispatch({ type: 'UPDATE_ROOMS', rooms});
 // Reducer for personnel trackers
 const personnelReducer = (state = initialState.personnel, action) => {
   switch (action.type) {
-    case 'UPDATE_PERSONNEL': return action.personnel;
+    // simply parse the new data and store it
+    case 'UPDATE_PERSONNEL': return JSON.parse(action.personnel);
     default:
         return state;
   }
@@ -311,21 +313,48 @@ const { dispatch, useGlobalState } = createStore(reducer, initialState);
 
 // Screens for the Assets
 
-// Display details of the selected asset
+// Display details of the selected assetType
 function DetailsScreen({ route, navigation }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Details! {route.params.item.name}</Text>
+
+  // Get the assets from global store 
+  const [assets] = useGlobalState('assets');
+
+  // Which assets are to be shown
+  const relevantAssets = assets.filter(x => x.id == route.params.item.id)[0].items;
+
+  // Display the individual item in the flatlist
+  const ItemView = ({ item }) => (     
+    <View style={styles.listItem}>   
+      <Ionicons name = {item.nodeStatus ? 'ios-close-circle' : 'ios-checkmark-circle'} 
+        size={40} 
+        color =  {item.nodeStatus ? "red" : "green"} 
+        style={{alignSelf:"center"}}
+      />       
+      <View style={{alignItems:"center",flex:1}}>
+        <Text style={{fontWeight:"bold", padding:3}}>{item.nodeName}</Text>
+        <Text style={{padding:2}}>Raum: {item.room}</Text>
+        <Text>MAC: {item.macAddress}</Text>
+      </View>        
     </View>
   );
-}
 
-//onPress={() => navigation.navigate('Details')}
-//onPress={() => getItem(item)}
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+    <View style={styles.listContainer}>        
+      <FlatList 
+        data={relevantAssets} 
+        renderItem={ItemView} 
+        keyExtractor={(item, index) => index.toString()} 
+      />
+    </View>
+  </SafeAreaView>
+  );
+}
 
 // Display a list of available assets
 function AssetsScreen({ navigation }) {
 
+  // Display the individual item in the flatlist
   const ItemView = ({ item }) => (     
     <View style={styles.listItem}>      
       <Image source={{uri:item.image}}  
@@ -333,39 +362,56 @@ function AssetsScreen({ navigation }) {
         opacity: item.availableCount > 0 ? 1 : 0.3
         }} />
       <View style={{alignItems:"center",flex:1}}>
-        <Text style={{fontWeight:"bold"}}>{item.name}</Text>
-        <Text>Verfügbare Geräte: {item.availableCount}</Text>
-        <Text>Insgesamt: {item.totalCount}</Text>
-      </View>
-      {item.availableCount > 0 ? (
-        <TouchableOpacity 
-        style={{height:60,width:50, justifyContent:"center",alignItems:"center"}}>
-          <Text style={{color:'#007aff'}} 
-          onPress={() => navigation.navigate('Details', {item,})} >Info...</Text>
-        </TouchableOpacity>) : (
-          <TouchableOpacity 
-          style={{height:60,width:50, justifyContent:"center",alignItems:"center"}}>
-            <Text style={{color:'#8e8e93'}}>Info...</Text>
-          </TouchableOpacity>
-        )}
+        <Text style={{fontWeight:"bold", padding:3}}>{item.name}</Text>
+        {item.availableCount > 0 ? (
+          <Text style={{padding:2}}>Verfügbar in: {item.items.filter(x => x.nodeStatus == 0)[0].room}</Text>
+          ) : (
+            <Text style={{padding:2}}>Nicht verfügbar</Text>
+          )
+        }
+        <Text>Insgesamt: {item.availableCount}</Text>
+      </View>      
+      <TouchableOpacity 
+      style={{height:60,width:50, justifyContent:"center",alignItems:"center"}}>
+        <Text style={{color:'#007aff'}} 
+        onPress={() => navigation.navigate('Details', {item})} >Info...</Text>
+      </TouchableOpacity>        
     </View>
   );
 
   
-  //Function for click on an item
-  const getItem = (item) => {
-    alert('Id : ' + item.id + ' Name : ' + item.name);
-  };
-
-  
-  // Get the assets from global store 
+  // Get the assets, rooms and personnel from global store 
   const [assets] = useGlobalState('assets');
+
+  // Get my current position from the personnel trackers
+  const [personnel] = useGlobalState('personnel');
+  const myPersonnel = personnel.filter(x => x.macAddress == "d26194bad006");
+  const myPosition = myPersonnel === undefined ? "unknown" : myPersonnel.length <= 0 ? "unknown" : myPersonnel[0].room;
+
+  // Get my current coordinate from the rooms
+  const [rooms] = useGlobalState('rooms');
+  const myRooms = rooms.filter(x => x.room == myPosition);
+  const myCoordinates = myRooms === undefined ? {x:0, y:0} : myRooms.length <= 0 ? {x:0, y:0} : {x:myRooms[0].x , y:myRooms[0].y};
+
+  //calculate the distance between myself and the assets
+  var assetsWithDistance = assets;
+  for (var idxType in assetsWithDistance) {
+    for (var idxAsset in assetsWithDistance[idxType].items) {
+      var assetRooms = rooms.filter(x => x.room == assetsWithDistance[idxType].items[idxAsset].room);
+      var assetCoordinate = assetRooms === undefined ? {x:0, y:0} : assetRooms.length <= 0 ? {x:0, y:0} : {x:assetRooms[0].x , y:assetRooms[0].y}; 
+
+      assetsWithDistance[idxType].items[idxAsset].distance = Math.abs(assetCoordinate.x - myCoordinates.x) + Math.abs(assetCoordinate.y - myCoordinates.y);
+    }
+    // Sort the items by distance
+    assetsWithDistance[idxType].items = assetsWithDistance[idxType].items.sort((a, b) => a.distance - b.distance);
+  }
   
+  // show the flatlist
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.listContainer}>        
         <FlatList 
-          data={assets} 
+          data={assetsWithDistance} 
           renderItem={ItemView} 
           keyExtractor={(item, index) => index.toString()} 
         />
@@ -375,7 +421,22 @@ function AssetsScreen({ navigation }) {
 }
 
 
+// Create a stack navigation for display of the assets and locations
+const AssetsStack = createStackNavigator();
 
+// Assemble the stack navigator
+function AssetsStackScreen({ navigation }) {
+  return (
+    <AssetsStack.Navigator>
+      <AssetsStack.Screen name="Assets" component={AssetsScreen} options = {{title : "Geräte"}} />
+      <AssetsStack.Screen 
+        name="Details" 
+        component={DetailsScreen}
+        options={({ route }) => ({ title: route.params.item.name })} 
+      />
+    </AssetsStack.Navigator>
+  );
+}
 
 
 // Show this screen and only this screen, when disconnected
@@ -418,28 +479,6 @@ function DisonnectScreen({ navigation }) {
 }
 
 
-
-
-// Create a stack navigation for display of the assets and locations
-const AssetsStack = createStackNavigator();
-
-// Assemble the stack navigator
-function AssetsStackScreen({ navigation }) {
-  return (
-    <AssetsStack.Navigator>
-      <AssetsStack.Screen name="Assets" component={AssetsScreen} options = {{title : "Geräte"}} />
-      <AssetsStack.Screen 
-        name="Details" 
-        component={DetailsScreen} 
-      />
-    </AssetsStack.Navigator>
-  );
-}
-
-
-
-
-
 // Create the main Tab-Navigator element
 const Tab = createBottomTabNavigator();
 
@@ -456,7 +495,9 @@ function TabNavigator_Connected({ navigation }) {
                 ? 'ios-list-box'
                 : 'ios-list';
             } else if (route.name === 'Connection') {
-              iconName = 'ios-radio';
+              iconName = focused
+                ? 'md-options'
+                : 'ios-options';
             }
 
             // You can return any component that you like here!
