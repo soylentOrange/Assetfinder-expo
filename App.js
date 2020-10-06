@@ -119,6 +119,8 @@ const initialAssetState = [
     //name : "rollator",
     name : "Rollator",
     image : Image.resolveAssetSource(require('./assets/rollator.png')).uri,
+    totalCount : 0,
+    availableCount : 0,
   },
   {
     items : [],
@@ -126,6 +128,8 @@ const initialAssetState = [
     //name : "wheelchair",
     name : "Rollstuhl",
     image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    totalCount : 0,
+    availableCount : 0,
   },
   {
     items : [],
@@ -133,6 +137,8 @@ const initialAssetState = [
     //name : "ultrasound device",
     name : "Ultraschall",
     image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    totalCount : 0,
+    availableCount : 0,
   },
   {
     items : [],
@@ -140,6 +146,8 @@ const initialAssetState = [
     //name : "ECG",
     name : "EKG",
     image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    totalCount : 0,
+    availableCount : 0,
   },
   {
     items : [],
@@ -147,6 +155,8 @@ const initialAssetState = [
     //name : "contraction recorder",
     name : "Wehenschreiber",
     image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    totalCount : 0,
+    availableCount : 0,
   },
   {
     items : [],
@@ -154,6 +164,8 @@ const initialAssetState = [
     //name : "rollboard",
     name : "Umlagerungshilfe",
     image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    totalCount : 0,
+    availableCount : 0,
   },
   {
     items : [],
@@ -161,6 +173,8 @@ const initialAssetState = [
     //name : "commode chair",
     name : "Toilettenstuhl",
     image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    totalCount : 0,
+    availableCount : 0,
   },
   {
     items : [],
@@ -168,6 +182,8 @@ const initialAssetState = [
     //name : "stretcher",
     name : "Trage",
     image : Image.resolveAssetSource(require('./assets/ECG.png')).uri,
+    totalCount : 0,
+    availbleCount : 0,
   },
 ];
 
@@ -256,14 +272,21 @@ const assetsReducer = (state = initialState.assets, action) => {
       var newAssetState = initialAssetState;
       for (var idx in newAssetState) {
         newAssetState[idx].items = []; 
+        newAssetState[idx].totalCount = 0;
+        newAssetState[idx].availableCount = 0;
       }
       
       // get the new Asset status and sort into the Array
       var assetList = JSON.parse(action.assets);
       for (var idx in assetList) {
-        newAssetState[assetList[idx].nodeSubtype - 1].items.push(assetList[idx]); 
+        newAssetState[assetList[idx].nodeSubtype - 1].items.push(assetList[idx]);
+        newAssetState[assetList[idx].nodeSubtype - 1].totalCount += 1;
+        if(assetList[idx].nodeStatus === 0) 
+          newAssetState[assetList[idx].nodeSubtype - 1].availableCount += 1; 
       }
-    return newAssetState;
+
+    // Return only AssetTypes that are visible
+    return newAssetState.filter(x => x.totalCount > 0);
      
     default:
         return state;
@@ -289,13 +312,16 @@ const { dispatch, useGlobalState } = createStore(reducer, initialState);
 // Screens for the Assets
 
 // Display details of the selected asset
-function DetailsScreen({ navigation }) {
+function DetailsScreen({ route, navigation }) {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Details!</Text>
+      <Text>Details! {route.params.item.name}</Text>
     </View>
   );
 }
+
+//onPress={() => navigation.navigate('Details')}
+//onPress={() => getItem(item)}
 
 // Display a list of available assets
 function AssetsScreen({ navigation }) {
@@ -304,21 +330,22 @@ function AssetsScreen({ navigation }) {
     <View style={styles.listItem}>      
       <Image source={{uri:item.image}}  
         style= {{width:60, height:60,borderRadius:15, 
-        opacity: item.items.filter(x => x.nodeStatus == 0).length >0 ? 1 : 0.3
+        opacity: item.availableCount > 0 ? 1 : 0.3
         }} />
       <View style={{alignItems:"center",flex:1}}>
         <Text style={{fontWeight:"bold"}}>{item.name}</Text>
-        <Text>Verfügbare Geräte: {item.items.filter(x => x.nodeStatus == 0).length}</Text>
-        <Text>Insgesamt: {item.items.length}</Text>
+        <Text>Verfügbare Geräte: {item.availableCount}</Text>
+        <Text>Insgesamt: {item.totalCount}</Text>
       </View>
-      {item.items.filter(x => x.nodeStatus == 0).length >0 ? (
+      {item.availableCount > 0 ? (
         <TouchableOpacity 
         style={{height:60,width:50, justifyContent:"center",alignItems:"center"}}>
-          <Text style={{color:'#007aff'}} onPress={() => getItem(item)}>Finden!</Text>
+          <Text style={{color:'#007aff'}} 
+          onPress={() => navigation.navigate('Details', {item,})} >Info...</Text>
         </TouchableOpacity>) : (
           <TouchableOpacity 
           style={{height:60,width:50, justifyContent:"center",alignItems:"center"}}>
-            <Text style={{color:'#8e8e93'}}>Finden!</Text>
+            <Text style={{color:'#8e8e93'}}>Info...</Text>
           </TouchableOpacity>
         )}
     </View>
@@ -509,7 +536,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   listItem : {
-    margin:10,
+    margin:7,
     padding:10,
     backgroundColor:"#FFF",
     width:"90%",
