@@ -5,6 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "android": {
+      "package": "de.uksh.assetfinder",
+      "versionCode": 1
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -17,11 +21,14 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "de.uksh.assetfinder",
+      "buildNumber": "1.0.0"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "description": ""
+    "description": "",
+    "githubUrl": "https://github.com/soylentOrange/Assetfinder-expo"
   }
 }
