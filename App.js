@@ -38,8 +38,14 @@ const createMQTTClient = () => {
   client.on('connectionLost', (responseObject) => {
     if (responseObject.errorCode !== undefined) {
       console.log('onConnectionLost');
-      console.log(responseObject.errorMessage);
-      MQTT_DISCONNECT();
+      if(responseObject.errorMessage.includes('OK')) {
+        console.log('Disconnect at will');
+        MQTT_DISCONNECTED();
+      } else {
+        console.log('Disconnect why?');
+        console.log(responseObject.errorMessage);
+        MQTT_RECONNECT();
+      }
     }
   });
 
@@ -192,6 +198,7 @@ const initialState = {
   mqtt : {
     isConnecting : false,
     isConnected : false,
+    isReconnecting : false,
     client : null,
   },
   rooms : [],
@@ -208,7 +215,8 @@ const mqttReducer = (state = initialState.mqtt, action) => {
     return {
         ...state,
         isConnecting: true,
-        isConnected: false,
+        isReconnecting : false,
+        isConnected : false,
         client : createMQTTClient()
     };
 
@@ -218,15 +226,36 @@ const mqttReducer = (state = initialState.mqtt, action) => {
         ...state,
         isConnecting: false,
         isConnected: true,
+        isReconnecting : false,
+    };
+
+    // We are now disconnected
+    case 'DISCONNECTED_MQTT':
+    return {
+      ...state,
+      isConnecting: false,
+      isConnected: false,
+      isReconnecting : false,
+    };
+
+    // We are now disconnected
+    case 'RECONNECT_MQTT':
+    return {
+      ...state,
+      isConnecting: false,
+      isConnected: true,
+      isReconnecting : true,
+      client : createMQTTClient()
     };
 
     // Disconnect from broker
     case 'DISCONNECT_MQTT':
     return {
-        ...state,
-        isConnecting: false,
-        isConnected: false,
-        client : disconnectMQTTClient(state.client),
+      ...state,
+      isConnecting: false,
+      isConnected: false,
+      isDisconnecting : true,          
+      client: disconnectMQTTClient(state.client),
     };
     default:
         return state;
@@ -236,6 +265,8 @@ const mqttReducer = (state = initialState.mqtt, action) => {
 // Shorthands for the mqtt-Connection
 const MQTT_CONNECTED = () => dispatch({ type: 'CONNECT_MQTT' });
 const MQTT_DISCONNECT = () => dispatch({ type: 'DISCONNECT_MQTT'});
+const MQTT_DISCONNECTED = () => dispatch({ type: 'DISCONNECTED_MQTT'});
+const MQTT_RECONNECT = () => dispatch({ type: 'RECONNECT_MQTT'});
 const MQTT_CONNECTING = () => dispatch({ type: 'CONNECTING_MQTT' });
 
 
@@ -438,6 +469,8 @@ function AssetsStackScreen({ navigation }) {
   );
 }
 
+// Create a stack navigation for display of the assets and locations
+const ConnectionStack = createStackNavigator();
 
 // Show this screen and only this screen, when disconnected
 function ConnectScreen({ navigation }) {
@@ -478,6 +511,18 @@ function DisonnectScreen({ navigation }) {
   );
 }
 
+// Show this screen when reconnecting as part of the main tab navigator
+function ReconnectingScreen({ navigation }) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Verbindung wird hergestellt</Text>
+      <Button 
+        title="Trennen..." 
+        onPress =  { MQTT_DISCONNECT }
+      />
+    </View>
+  );
+}
 
 // Create the main Tab-Navigator element
 const Tab = createBottomTabNavigator();
@@ -514,6 +559,40 @@ function TabNavigator_Connected({ navigation }) {
     </Tab.Navigator>
   );
 }
+
+// Assemble the tab-navigator (We're in the re-connecting state)
+function TabNavigator_Reconnecting({ navigation }) {
+  return (
+    <Tab.Navigator 
+      screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
+
+            if (route.name === 'Assets') {
+              iconName = focused
+                ? 'ios-list-box'
+                : 'ios-list';
+            } else if (route.name === 'Connection') {
+              iconName = focused
+                ? 'md-options'
+                : 'ios-options';
+            }
+
+            // You can return any component that you like here!
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+        })}
+        tabBarOptions={{
+          activeTintColor: 	'#007aff',
+          inactiveTintColor: '#8e8e93',
+        }} 
+      > 
+      <Tab.Screen name="Assets" component={AssetsStackScreen} options = {{title : "Geräte"}}/>
+      <Tab.Screen name="Connection" component={ReconnectingScreen} options = {{title : "Verbindung", tabBarBadge: "!"}} />
+    </Tab.Navigator>
+  );
+}
+
 
 // Assemble the tab-navigator (We're in the dis-connected state)
 function TabNavigator_Disonnected({ navigation }) {
@@ -556,9 +635,11 @@ export default function App({ navigation }) {
     <NavigationContainer> 
         {mqtt.isConnecting ? (
           <TabNavigator_Connecting/>
-        ) : (mqtt.isConnected ? (
-            <TabNavigator_Connected/>
-          ) : (
+        ) : (mqtt.isConnected ? ( mqtt.isReconnecting ? (
+          <TabNavigator_Reconnecting/>
+        ) : (
+          <TabNavigator_Connected/>
+        )) : (
             <TabNavigator_Disonnected/>
           )
         )}  
