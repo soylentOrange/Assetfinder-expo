@@ -95,7 +95,7 @@ const createMQTTClient = () => {
     .catch((responseObject) => {
       if (responseObject.errorCode !== undefined) {
         console.log('Error while trying to connect, subscribe and hail the server:' + responseObject.errorMessage);
-        MQTT_DISCONNECT();
+        MQTT_RECONNECT();
       }
     });  
  
